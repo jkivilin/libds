@@ -40,11 +40,11 @@
 #endif
 
 #define DS_APPEND_BUFFER_PIECE_DATA_LEN (DS_APPEND_BUFFER_PIECE_LEN - \
-						sizeof(struct ds_list_entry) - \
-						sizeof(unsigned int))
+					 sizeof(struct ds_xorlist_entry) - \
+					 sizeof(unsigned int))
 
 struct ds_append_buffer_piece {
-	struct ds_list_entry entry;
+	struct ds_xorlist_entry entry;
 	piece_datalen_t datalen;
 	unsigned char data[DS_APPEND_BUFFER_PIECE_DATA_LEN];
 };
@@ -61,7 +61,18 @@ iterator_to_piece(struct ds_append_buffer_iterator *iter)
 }
 
 static inline struct ds_append_buffer_piece *
-entry_to_piece(struct ds_list_entry *entry)
+iterator_to_piece_prev(struct ds_append_buffer_iterator *iter)
+{
+	/*
+	 * iter->pchar and iter->ppos have enough offset information to
+         * reconstruct piece pointer.
+	 */
+	return ds_container_of(iter->pprev,
+			       struct ds_append_buffer_piece, data);
+}
+
+static inline struct ds_append_buffer_piece *
+entry_to_piece(struct ds_xorlist_entry *entry)
 {
 	return ds_container_of(entry, struct ds_append_buffer_piece, entry);
 }
@@ -74,12 +85,12 @@ void ds_append_buffer_free(struct ds_append_buffer *buf)
 {
 	struct ds_append_buffer_piece *piece;
 
-	while (!ds_list_empty(&buf->list)) {
+	while (!ds_xorlist_empty(&buf->list)) {
 		/* get buffer piece through list entry */
-		piece = entry_to_piece(ds_list_first(&buf->list));
+		piece = entry_to_piece(ds_xorlist_first(&buf->list));
 
 		/* remove list entry */
-		ds_list_remove_entry(&buf->list, &piece->entry);
+		ds_xorlist_remove_entry(&buf->list, &piece->entry, NULL);
 
 		/* adjust total length */
 		buf->length -= piece->datalen - buf->first_offset;
@@ -117,15 +128,15 @@ void ds_append_buffer_move(struct ds_append_buffer *new,
 bool ds_append_buffer_clone(struct ds_append_buffer *new,
 			       const struct ds_append_buffer *old)
 {
-	struct ds_list_entry *pos;
+	struct ds_xorlist_entry *pos, *prev;
 	struct ds_append_buffer_piece *old_piece;
 	struct ds_append_buffer_piece *new_piece;
 
 	/* Copy header and reinitialize the list structure */
 	*new = *old;
-	ds_list_init(&new->list);
+	ds_xorlist_init(&new->list);
 
-	ds_list_for_each(pos, &old->list) {
+	ds_xorlist_for_each(prev, pos, &old->list) {
 		old_piece = entry_to_piece(pos);
 
 		/* Allocate new clone piece */
@@ -138,7 +149,7 @@ bool ds_append_buffer_clone(struct ds_append_buffer *new,
 		new_piece->datalen = old_piece->datalen;
 
 		/* Add new piece at end of new piece list */
-		ds_list_append_entry(&new->list, &new_piece->entry);
+		ds_xorlist_append_entry(&new->list, &new_piece->entry);
 	}
 
 	return true;
@@ -186,7 +197,7 @@ copy_to_append_buffer_piece(struct ds_append_buffer_piece *piece,
 unsigned int ds_append_buffer_append(struct ds_append_buffer *abuf,
 				     const void *__inbuf, unsigned int len)
 {
-	struct ds_list_entry *list_last;
+	struct ds_xorlist_entry *list_last;
 	struct ds_append_buffer_piece *last;
 	const unsigned char *inbuf = __inbuf;
 	unsigned int bytes_copied, total_copied;
@@ -198,7 +209,7 @@ unsigned int ds_append_buffer_append(struct ds_append_buffer *abuf,
 		return total_copied;
 
 	/* First try to append at end of last entry */
-	list_last = ds_list_last(&abuf->list);
+	list_last = ds_xorlist_last(&abuf->list);
 	if (list_last) {
 		last = entry_to_piece(list_last);
 
@@ -224,7 +235,7 @@ unsigned int ds_append_buffer_append(struct ds_append_buffer *abuf,
 
 		/* Initialize piece and add to piece list */
 		last->datalen = 0;
-		ds_list_append_entry(&abuf->list, &last->entry);
+		ds_xorlist_append_entry(&abuf->list, &last->entry);
 
 		/* Copy new buffer data to new piece */
 		bytes_copied = copy_to_append_buffer_piece(last, inbuf, len);
@@ -298,7 +309,7 @@ unsigned int ds_append_buffer_copy(struct ds_append_buffer *abuf,
  */
 bool ds_append_buffer_move_head(struct ds_append_buffer *abuf, unsigned int add)
 {
-	struct ds_list_entry *prev;
+	struct ds_xorlist_entry *prev;
 	struct ds_append_buffer_piece *piece, *prev_piece;
 	struct ds_append_buffer_iterator iter;
 
@@ -321,15 +332,15 @@ bool ds_append_buffer_move_head(struct ds_append_buffer *abuf, unsigned int add)
          * previous pieces from linked list and freeing them.
 	 */
 	piece = iterator_to_piece(&iter);
-	prev = piece->entry.prev;
+	prev = iter.pprev;
 	while (prev) {
 		prev_piece = entry_to_piece(prev);
 
 		/* remove list entry */
-		ds_list_remove_entry(&abuf->list, prev);
+		ds_xorlist_remove_entry(&abuf->list, prev, &piece->entry);
 
 		/* get next prev */
-		prev = prev_piece->entry.prev;
+		prev = ds_xorlist_next(&piece->entry, prev);
 
 		/* free buffer piece */
 		free(prev_piece);
@@ -339,7 +350,7 @@ bool ds_append_buffer_move_head(struct ds_append_buffer *abuf, unsigned int add)
 	abuf->length -= add;
 
 	/* Free buffer when reached end */
-	if (abuf->length == 0 && !ds_list_empty(&abuf->list))
+	if (abuf->length == 0 && !ds_xorlist_empty(&abuf->list))
 		ds_append_buffer_free(abuf);
 
 	return true;
@@ -363,7 +374,7 @@ bool ds_append_buffer_append_piece(struct ds_append_buffer *abuf,
 {
 	struct ds_append_buffer_piece *piece =
 		ds_container_of(piece_buf, struct ds_append_buffer_piece, data);
-	struct ds_list_entry *lentry = ds_list_last(&abuf->list);
+	struct ds_xorlist_entry *lentry = ds_xorlist_last(&abuf->list);
 
 	if (lentry) {
 		struct ds_append_buffer_piece *last = entry_to_piece(lentry);
@@ -375,7 +386,7 @@ bool ds_append_buffer_append_piece(struct ds_append_buffer *abuf,
 	piece->datalen = buflen;
 
 	/* add new piece and adjust buffer length */
-	ds_list_append_entry(&abuf->list, &piece->entry);
+	ds_xorlist_append_entry(&abuf->list, &piece->entry);
 	abuf->length += buflen;
 
 	return true;
@@ -420,7 +431,7 @@ void ds_append_buffer_free_piece(void *piece_buf)
 void *ds_append_buffer_get_end_free(struct ds_append_buffer *abuf,
 				    unsigned int *freelen)
 {
-	struct ds_list_entry *lentry = ds_list_last(&abuf->list);
+	struct ds_xorlist_entry *lentry = ds_xorlist_last(&abuf->list);
 	struct ds_append_buffer_piece *piece;
 
 	/* empty buffer? */
@@ -450,7 +461,7 @@ void *ds_append_buffer_get_end_free(struct ds_append_buffer *abuf,
  */
 bool ds_append_buffer_move_end(struct ds_append_buffer *abuf, unsigned int add)
 {
-	struct ds_list_entry *lentry = ds_list_last(&abuf->list);
+	struct ds_xorlist_entry *lentry = ds_xorlist_last(&abuf->list);
 	struct ds_append_buffer_piece *piece;
 
 	/* empty buffer?! */
@@ -507,7 +518,7 @@ void *ds_append_buffer_get_write_buffer(struct ds_append_buffer *abuf,
 bool ds_append_buffer_finish_write_buffer(struct ds_append_buffer *abuf,
 					  void *write_buf, unsigned int buflen)
 {
-	struct ds_list_entry *lentry = ds_list_last(&abuf->list);
+	struct ds_xorlist_entry *lentry = ds_xorlist_last(&abuf->list);
 	struct ds_append_buffer_piece *piece;
 
 	/* Check if write_buf is already part of @abuf */
@@ -531,10 +542,11 @@ bool ds_append_buffer_finish_write_buffer(struct ds_append_buffer *abuf,
 void ds_append_buffer_iterator_init(struct ds_append_buffer *abuf,
 				    struct ds_append_buffer_iterator *iter)
 {
-	struct ds_list_entry *first;
+	struct ds_xorlist_entry *first;
 	struct ds_append_buffer_piece *piece;
 
 	iter->pchar = NULL;
+	iter->pprev = NULL;
 	iter->ppos = abuf->first_offset;
 	iter->pos = 0;
 	iter->pmax = 0;
@@ -542,7 +554,7 @@ void ds_append_buffer_iterator_init(struct ds_append_buffer *abuf,
 	if (ds_append_buffer_length(abuf) == 0)
 		return;
 
-	first = ds_list_first(&abuf->list);
+	first = ds_xorlist_first(&abuf->list);
 	if (!first)
 		return;
 
@@ -561,7 +573,7 @@ void __ds_append_buffer_iterator_forward(
 		struct ds_append_buffer_iterator *iter, unsigned int add)
 {
 	struct ds_append_buffer_piece *piece;
-	struct ds_list_entry *next;
+	struct ds_xorlist_entry *next;
 	unsigned int steps_left;
 
 	piece = iterator_to_piece(iter);
@@ -579,16 +591,19 @@ void __ds_append_buffer_iterator_forward(
 		}
 
 		/* Proceed to next piece */
-		next = piece->entry.next;
-
+		next = ds_xorlist_next((struct ds_xorlist_entry *)iter->pprev,
+				       &piece->entry);
+				       
 		/* Update interator structure with new position*/
 		iter->pos += steps_left;
 		iter->pchar = NULL;
+		iter->pprev = NULL;
 		iter->ppos = 0;
 
 		if (!next)
 			return;
 
+		iter->pprev = &piece->entry;
 		piece = entry_to_piece(next);
 		iter->pchar = piece->data;
 		iter->pmax = piece->datalen;

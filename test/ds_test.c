@@ -1017,44 +1017,44 @@ static int ds_append_buffer_test(void)
 	/* test append buffer initialization */
 	ds_append_buffer_init(&abuf);
 	ds_test_assert(ds_append_buffer_length(&abuf) == 0);
-	ds_test_assert(ds_list_empty(&abuf.list) == true);
+	ds_test_assert(ds_xorlist_empty(&abuf.list) == true);
 
 	/* free empty buffer */
 	ds_append_buffer_free(&abuf);
 	ds_test_assert(ds_append_buffer_length(&abuf) == 0);
-	ds_test_assert(ds_list_empty(&abuf.list) == true);
+	ds_test_assert(ds_xorlist_empty(&abuf.list) == true);
 
 	/* fill into buffer */
 	ds_append_buffer_init(&abuf);
 	ds_test_assert(ds_append_buffer_append(&abuf, "testing", sizeof("testing")) == sizeof("testing"));
 	ds_test_assert(ds_append_buffer_length(&abuf) == sizeof("testing"));
-	ds_test_assert(ds_list_empty(&abuf.list) == false);
+	ds_test_assert(ds_xorlist_empty(&abuf.list) == false);
 
 	/* free non-empty buffer */
 	ds_append_buffer_free(&abuf);
 	ds_test_assert(ds_append_buffer_length(&abuf) == 0);
-	ds_test_assert(ds_list_empty(&abuf.list) == true);
+	ds_test_assert(ds_xorlist_empty(&abuf.list) == true);
 
 	/* move buffer */
 	ds_append_buffer_init(&abuf);
 	ds_append_buffer_append(&abuf, "testing", sizeof("testing"));
 	ds_append_buffer_move(&abuf2, &abuf);
 	ds_test_assert(ds_append_buffer_length(&abuf) == 0);
-	ds_test_assert(ds_list_empty(&abuf.list) == true);
+	ds_test_assert(ds_xorlist_empty(&abuf.list) == true);
 	ds_test_assert(ds_append_buffer_length(&abuf2) == sizeof("testing"));
-	ds_test_assert(ds_list_empty(&abuf2.list) == false);
+	ds_test_assert(ds_xorlist_empty(&abuf2.list) == false);
 	ds_append_buffer_free(&abuf2);
 	ds_test_assert(ds_append_buffer_length(&abuf2) == 0);
-	ds_test_assert(ds_list_empty(&abuf2.list) == true);
+	ds_test_assert(ds_xorlist_empty(&abuf2.list) == true);
 
 	/* clone buffer */
 	ds_append_buffer_init(&abuf);
 	ds_append_buffer_append(&abuf, "testing", sizeof("testing"));
 	ds_append_buffer_clone(&abuf2, &abuf);
 	ds_test_assert(ds_append_buffer_length(&abuf) == sizeof("testing"));
-	ds_test_assert(ds_list_empty(&abuf.list) == false);
+	ds_test_assert(ds_xorlist_empty(&abuf.list) == false);
 	ds_test_assert(ds_append_buffer_length(&abuf2) == sizeof("testing"));
-	ds_test_assert(ds_list_empty(&abuf2.list) == false);
+	ds_test_assert(ds_xorlist_empty(&abuf2.list) == false);
 	ds_append_buffer_free(&abuf);
 	ds_append_buffer_free(&abuf2);
 
@@ -1062,34 +1062,34 @@ static int ds_append_buffer_test(void)
 	ds_append_buffer_init(&abuf);
 	ds_test_assert(ds_append_buffer_append(&abuf, "testing", sizeof("testing")) == sizeof("testing"));
 	ds_test_assert(ds_append_buffer_length(&abuf) == sizeof("testing"));
-	ds_test_assert(ds_list_empty(&abuf.list) == false);
+	ds_test_assert(ds_xorlist_empty(&abuf.list) == false);
 	ds_test_assert(ds_append_buffer_move_head(&abuf, 0) == true);
 	ds_test_assert(ds_append_buffer_length(&abuf) == sizeof("testing"));
-	ds_test_assert(ds_list_empty(&abuf.list) == false);
+	ds_test_assert(ds_xorlist_empty(&abuf.list) == false);
 	ds_test_assert(ds_append_buffer_move_head(&abuf, 1) == true);
 	ds_test_assert(ds_append_buffer_length(&abuf) == sizeof("esting"));
-	ds_test_assert(ds_list_empty(&abuf.list) == false);
+	ds_test_assert(ds_xorlist_empty(&abuf.list) == false);
 
 	/* clone buffer that has head moved */
 	ds_append_buffer_clone(&abuf2, &abuf);
 	ds_test_assert(ds_append_buffer_length(&abuf2) == sizeof("esting"));
-	ds_test_assert(ds_list_empty(&abuf2.list) == false);
+	ds_test_assert(ds_xorlist_empty(&abuf2.list) == false);
 
 	/* free non-empty buffer that has head moved forward */
 	ds_append_buffer_free(&abuf);
 	ds_test_assert(ds_append_buffer_length(&abuf) == 0);
-	ds_test_assert(ds_list_empty(&abuf.list) == true);
+	ds_test_assert(ds_xorlist_empty(&abuf.list) == true);
 
 	/* move head forward until buffer has been emptied */
 	ds_test_assert(ds_append_buffer_move_head(&abuf2, 5) == true);
 	ds_test_assert(ds_append_buffer_length(&abuf2) == sizeof("g"));
-	ds_test_assert(ds_list_empty(&abuf2.list) == false);
+	ds_test_assert(ds_xorlist_empty(&abuf2.list) == false);
 	ds_test_assert(ds_append_buffer_move_head(&abuf2, 2) == true);
 	ds_test_assert(ds_append_buffer_length(&abuf2) == 0);
-	ds_test_assert(ds_list_empty(&abuf2.list) == true);
+	ds_test_assert(ds_xorlist_empty(&abuf2.list) == true);
 	ds_test_assert(ds_append_buffer_move_head(&abuf, 0) == true);
 	ds_test_assert(ds_append_buffer_length(&abuf) == 0);
-	ds_test_assert(ds_list_empty(&abuf.list) == true);
+	ds_test_assert(ds_xorlist_empty(&abuf.list) == true);
 
 	/* move head forward too much (ds_append_buffer_move_head return false but empties buffer)*/
 	ds_append_buffer_init(&abuf);
@@ -1097,7 +1097,7 @@ static int ds_append_buffer_test(void)
 	ds_test_assert(ds_append_buffer_length(&abuf) == sizeof("testing"));
 	ds_test_assert(ds_append_buffer_move_head(&abuf, 200) == false);
 	ds_test_assert(ds_append_buffer_length(&abuf) == 0);
-	ds_test_assert(ds_list_empty(&abuf.list) == true);
+	ds_test_assert(ds_xorlist_empty(&abuf.list) == true);
 
 	/* piece_buf tests */
 	piece_buf = ds_append_buffer_new_piece(&buflen);
@@ -1105,7 +1105,7 @@ static int ds_append_buffer_test(void)
 	ds_append_buffer_free_piece(piece_buf);
 
 	ds_append_buffer_init(&abuf);
-	ds_test_assert(ds_list_empty(&abuf.list) == true);
+	ds_test_assert(ds_xorlist_empty(&abuf.list) == true);
 	
 	piece_buf = ds_append_buffer_new_piece(&buflen);
 	fulllen = buflen;
@@ -1114,7 +1114,7 @@ static int ds_append_buffer_test(void)
 
 	ds_test_assert(ds_append_buffer_append_piece(&abuf, piece_buf, buflen));
 	ds_test_assert(ds_append_buffer_length(&abuf) == buflen);
-	ds_test_assert(ds_list_empty(&abuf.list) == false);
+	ds_test_assert(ds_xorlist_empty(&abuf.list) == false);
 
 	i = ds_append_buffer_copy(&abuf, 0, buf, sizeof(buf));
 	ds_test_assert(i == buflen);
@@ -1196,7 +1196,7 @@ static int ds_append_buffer_test(void)
 	ds_test_assert(ds_append_buffer_length(&abuf) == sizeof("testing"));
 	ds_append_buffer_free(&abuf);
 	ds_test_assert(ds_append_buffer_length(&abuf) == 0);
-	ds_test_assert(ds_list_empty(&abuf.list) == true);
+	ds_test_assert(ds_xorlist_empty(&abuf.list) == true);
 
 	/* larger iteration test */
 	ds_append_buffer_init(&abuf);

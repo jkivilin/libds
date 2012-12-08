@@ -833,7 +833,7 @@ static inline void ds_async_queue_pop(struct ds_async_queue *queue, void **msg,
  *****************************************************************************/
 
 struct ds_append_buffer {
-	struct ds_linked_list list;
+	struct ds_xor_list list;
 	unsigned int length;
 	unsigned int first_offset;
 };
@@ -844,7 +844,7 @@ struct ds_append_buffer {
  */
 static inline void ds_append_buffer_init(struct ds_append_buffer *buf)
 {
-	ds_list_init(&buf->list);
+	ds_xorlist_init(&buf->list);
 	buf->length = 0;
 	buf->first_offset = 0;
 }
@@ -994,6 +994,7 @@ extern bool ds_append_buffer_append_piece(struct ds_append_buffer *abuf,
  */
 struct ds_append_buffer_iterator {
 	unsigned char *pchar;
+	void *pprev;
 	unsigned int ppos;
 	unsigned int pos;
 	unsigned int pmax;

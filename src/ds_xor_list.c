@@ -174,14 +174,19 @@ void ds_xorlist_remove_entry(struct ds_xor_list *list,
 		/* only entry of list */
 		list->head = NULL;
 		list->tail = NULL;
-	} else if (entry == list->head) {
-		/* first of list */
-		list->head = ds_xorlist_next(NULL, entry);
-		next->prevnext ^= (uintptr_t)entry;
-	} else if (entry == list->tail) {
-		/* last of list */
-		list->tail = ds_xorlist_next(NULL, entry);
-		next->prevnext ^= (uintptr_t)entry;
+	} else if (entry == list->head || entry == list->tail) {
+		/* last or first of list */
+		if (entry == list->head)
+			list->head = ds_xorlist_next(NULL, entry);
+		else
+			list->tail = ds_xorlist_next(NULL, entry);
+
+		ds_assert(!!next ^ !!prev);
+
+		if (next)
+			next->prevnext ^= (uintptr_t)entry;
+		if (prev)
+			prev->prevnext ^= (uintptr_t)entry;
 	} else {
 		/* middle */
 		prev->prevnext ^= (uintptr_t)entry ^ (uintptr_t)next;
