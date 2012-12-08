@@ -25,14 +25,17 @@
 
 #include <stdlib.h>
 #include <memory.h>
+#include <assert.h>
 
 #include "ds.h"
 
 #ifndef DEBUG
 	#define DISABLE_RUNTIME_TESTS
+	#define ds_assert(x)
+#else
+	#define ds_assert(x) assert(x)
 #endif
 
-#define ds_assert(x)
 
 /**
  * ds_list_entry_alloc - allocate memory area large enough for list_entry and
