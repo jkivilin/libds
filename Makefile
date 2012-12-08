@@ -24,6 +24,16 @@ TESTDS=test
 
 all: lib test
 
+# Directories
+libdir:
+	[ -e $(LIBDIR) ] || mkdir $(LIBDIR)
+$(INCLUDEDIR):
+	[ -e $(INCLUDEDIR) ] || mkdir $(INCLUDEDIR)
+$(TMPDIR):
+	[ -e $(TMPDIR) ] || mkdir $(TMPDIR)
+$(BINDIR):
+	[ -e $(BINDIR) ] || mkdir $(BINDIR)
+
 # Libraries
 
 lib: libds
@@ -40,13 +50,13 @@ LIBDS_OBJS=\
 
 libds: $(LIBDIR)/libds.a $(INCLUDEDIR)/ds.h
 
-$(LIBDIR)/libds.a: $(LIBDS_OBJS)
+$(LIBDIR)/libds.a: $(LIBDS_OBJS) libdir
 	ar rcs $(LIBDIR)/libds.a $(LIBDS_OBJS)
 
-$(INCLUDEDIR)/ds.h: $(LIBDS_HEADER)
+$(INCLUDEDIR)/ds.h: $(LIBDS_HEADER) $(INCLUDEDIR)
 	cp $(LIBDS_HEADER) $(INCLUDEDIR)/ds.h
 
-$(TMPDIR)/%.o: $(LIBDS)/%.c $(LIBDS_HEADER) $(INCLUDEDIR)/ds.h
+$(TMPDIR)/%.o: $(LIBDS)/%.c $(LIBDS_HEADER) $(INCLUDEDIR)/ds.h $(TMPDIR)
 	$(CC) $(CFLAGS) -c $< -o $@
 
 # Tests
@@ -55,15 +65,15 @@ test: ds_test
 
 ds_test: $(BINDIR)/ds_test
 
-$(BINDIR)/ds_test: $(TMPDIR)/ds_test.o $(LIBDIR)/libds.a
+$(BINDIR)/ds_test: $(TMPDIR)/ds_test.o $(LIBDIR)/libds.a $(BINDIR)
 	$(CC) $(TMPDIR)/ds_test.o -o $(BINDIR)/ds_test $(LDFLAGS)
 
-$(TMPDIR)/ds_test.o: $(TESTDS)/ds_test.c $(INCLUDEDIR)/ds.h
+$(TMPDIR)/ds_test.o: $(TESTDS)/ds_test.c $(INCLUDEDIR)/ds.h $(TMPDIR)
 	$(CC) $(CFLAGS) $(INCLUDEFLAGS) -c $< -o $@
 
 # Clean
 clean:
-	rm -rf $(TMPDIR)/*.o
-	rm -rf $(INCLUDEDIR)/*.h
-	rm -rf $(LIBDIR)/*.so
-	rm -rf $(LIBDIR)/*.a
+	rm -rf $(TMPDIR)
+	rm -rf $(INCLUDEDIR)
+	rm -rf $(LIBDIR)
+	rm -rf $(BINDIR)
