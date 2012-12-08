@@ -389,6 +389,346 @@ static int ds_linked_list_test(void)
 	return 0;
 }
 
+static int ds_xor_list_test(void)
+{
+	struct ds_xor_list list;
+	struct ds_xorlist_entry *pos, *prev;
+	long i;
+
+	/* test list initialization */
+	ds_xorlist_init(&list);
+	ds_test_assert(ds_xorlist_first(&list) == NULL);
+	ds_test_assert(ds_xorlist_last(&list) == NULL);
+	ds_test_assert(ds_xorlist_empty(&list));
+	ds_test_assert(ds_xorlist_size(&list) == 0);
+
+	/* test freeing list entries of empty list */
+	ds_xorlist_free(&list);
+	ds_test_assert(ds_xorlist_first(&list) == NULL);
+	ds_test_assert(ds_xorlist_last(&list) == NULL);
+	ds_test_assert(ds_xorlist_empty(&list));
+	ds_test_assert(ds_xorlist_size(&list) == 0);
+
+	/* test adding entry at tail of empty list */
+	ds_xorlist_append(&list, (void *)1);
+	ds_test_assert(ds_xorlist_first(&list) != NULL);
+	ds_test_assert(ds_xorlist_first(&list) == ds_xorlist_last(&list));
+	ds_test_assert(ds_xorlist_entry_data(void *, ds_xorlist_first(&list)) == (void *)1);
+	ds_test_assert(!ds_xorlist_empty(&list));
+	ds_test_assert(ds_xorlist_size(&list) == 1);
+
+	/* test freeing list entry */
+	ds_xorlist_free(&list);
+	ds_test_assert(ds_xorlist_first(&list) == NULL);
+	ds_test_assert(ds_xorlist_last(&list) == NULL);
+	ds_test_assert(ds_xorlist_empty(&list));
+	ds_test_assert(ds_xorlist_size(&list) == 0);
+
+	/* test adding two entries at tail of empty list */
+	ds_xorlist_append(&list, (void *)1);
+	ds_xorlist_append(&list, (void *)2);
+	ds_test_assert(ds_xorlist_first(&list) != NULL);
+	ds_test_assert(ds_xorlist_first(&list) != ds_xorlist_last(&list));
+	ds_test_assert(ds_xorlist_entry_data(void *, ds_xorlist_first(&list)) == (void *)1);
+	ds_test_assert(ds_xorlist_entry_data(void *, ds_xorlist_last(&list)) == (void *)2);
+	ds_test_assert(!ds_xorlist_empty(&list));
+	ds_test_assert(ds_xorlist_size(&list) == 2);
+	ds_test_assert(ds_xorlist_next(NULL, ds_xorlist_first(&list)) == ds_xorlist_last(&list));
+	ds_test_assert(ds_xorlist_next(NULL, ds_xorlist_last(&list)) == ds_xorlist_first(&list));
+
+	/* test freeing list entries */
+	ds_xorlist_free(&list);
+	ds_test_assert(ds_xorlist_first(&list) == NULL);
+	ds_test_assert(ds_xorlist_last(&list) == NULL);
+	ds_test_assert(ds_xorlist_empty(&list));
+	ds_test_assert(ds_xorlist_size(&list) == 0);
+
+	/* test adding two entries at tail of empty list */
+	ds_xorlist_append(&list, (void *)1);
+	ds_xorlist_append(&list, (void *)2);
+	ds_xorlist_append(&list, (void *)3);
+	ds_test_assert(ds_xorlist_first(&list) != NULL);
+	ds_test_assert(ds_xorlist_first(&list) != ds_xorlist_last(&list));
+	ds_test_assert(ds_xorlist_entry_data(void *, ds_xorlist_first(&list)) == (void *)1);
+	ds_test_assert(ds_xorlist_entry_data(void *, ds_xorlist_last(&list)) == (void *)3);
+	ds_test_assert(!ds_xorlist_empty(&list));
+	ds_test_assert(ds_xorlist_size(&list) == 3);
+
+	/* Test manual iteration through list of three elements */
+	pos = ds_xorlist_next(NULL, ds_xorlist_first(&list));
+	ds_test_assert(ds_xorlist_entry_data(void *, pos) == (void *)2);
+	pos = ds_xorlist_next(ds_xorlist_first(&list), pos);
+	ds_test_assert(ds_xorlist_entry_data(void *, pos) == (void *)3);
+	pos = ds_xorlist_next(NULL, ds_xorlist_last(&list));
+	ds_test_assert(ds_xorlist_entry_data(void *, pos) == (void *)2);
+	pos = ds_xorlist_next(ds_xorlist_last(&list), pos);
+	ds_test_assert(ds_xorlist_entry_data(void *, pos) == (void *)1);
+
+	/* test freeing list entries */
+	ds_xorlist_free(&list);
+	ds_test_assert(ds_xorlist_first(&list) == NULL);
+	ds_test_assert(ds_xorlist_last(&list) == NULL);
+	ds_test_assert(ds_xorlist_empty(&list));
+	ds_test_assert(ds_xorlist_size(&list) == 0);
+
+	/* test adding entry at tail of empty list */
+	ds_xorlist_append(&list, (void *)1);
+	ds_test_assert(ds_xorlist_first(&list) != NULL);
+	ds_test_assert(ds_xorlist_first(&list) == ds_xorlist_last(&list));
+	ds_test_assert(ds_xorlist_entry_data(void *, ds_xorlist_first(&list)) == (void *)1);
+	ds_test_assert(!ds_xorlist_empty(&list));
+	ds_test_assert(ds_xorlist_size(&list) == 1);
+
+	/* test removing the only entry of list */
+	ds_xorlist_delete_entry(&list, ds_xorlist_first(&list), NULL);
+	ds_test_assert(ds_xorlist_first(&list) == NULL);
+	ds_test_assert(ds_xorlist_last(&list) == NULL);
+	ds_test_assert(ds_xorlist_empty(&list));
+	ds_test_assert(ds_xorlist_size(&list) == 0);
+
+	/* test adding entry at head of empty list */
+	ds_xorlist_prepend(&list, (void *)2);
+	ds_test_assert(ds_xorlist_first(&list) != NULL);
+	ds_test_assert(ds_xorlist_first(&list) == ds_xorlist_last(&list));
+	ds_test_assert(ds_xorlist_entry_data(void *, ds_xorlist_first(&list)) == (void *)2);
+	ds_test_assert(!ds_xorlist_empty(&list));
+	ds_test_assert(ds_xorlist_size(&list) == 1);
+	ds_xorlist_delete_entry(&list, ds_xorlist_first(&list), NULL);
+
+	/* test removing the first entry of list */
+	ds_xorlist_append(&list, (void *)1);
+	ds_xorlist_append(&list, (void *)2);
+	ds_xorlist_delete_entry(&list, ds_xorlist_first(&list), NULL);
+	ds_test_assert(ds_xorlist_first(&list) != NULL);
+	ds_test_assert(ds_xorlist_first(&list) == ds_xorlist_last(&list));
+	ds_test_assert(ds_xorlist_entry_data(void *, ds_xorlist_first(&list)) == (void *)2);
+	ds_test_assert(!ds_xorlist_empty(&list));
+	ds_test_assert(ds_xorlist_size(&list) == 1);
+	ds_xorlist_delete_entry(&list, ds_xorlist_first(&list), NULL);
+
+
+	/* fill list */
+	ds_xorlist_prepend(&list, (void *)1);
+	ds_xorlist_append(&list, (void *)2);
+	ds_xorlist_prepend(&list, (void *)3);
+	ds_xorlist_append(&list, (void *)4);
+	ds_xorlist_prepend(&list, (void *)5);
+	ds_test_assert(ds_xorlist_first(&list) != NULL);
+	ds_test_assert(ds_xorlist_last(&list) != NULL);
+	ds_test_assert(ds_xorlist_first(&list) != ds_xorlist_last(&list));
+	ds_test_assert(ds_xorlist_entry_data(void *, ds_xorlist_first(&list)) == (void *)5);
+	ds_test_assert(ds_xorlist_entry_data(void *, ds_xorlist_last(&list)) == (void *)4);
+	ds_test_assert(ds_xorlist_size(&list) == 5);
+
+	/* verify forward iteration through list */
+	i = 0;
+	ds_xorlist_for_each(prev, pos, &list) {
+		switch(i++) {
+		case 0:
+			ds_test_assert(ds_xorlist_entry_data(void *, pos) == (void *)5);
+			break;
+		case 1:
+			ds_test_assert(ds_xorlist_entry_data(void *, pos) == (void *)3);
+			break;
+		case 2:
+			ds_test_assert(ds_xorlist_entry_data(void *, pos) == (void *)1);
+			break;
+		case 3:
+			ds_test_assert(ds_xorlist_entry_data(void *, pos) == (void *)2);
+			break;
+		case 4:
+			ds_test_assert(ds_xorlist_entry_data(void *, pos) == (void *)4);
+			break;
+		default:
+			ds_test_assert("too many list entries" == NULL);
+			break;
+		}
+	}
+
+	/* verify backward iteration through list */
+	i = 0;
+	ds_xorlist_for_each_tail(prev, pos, &list) {
+		switch(i++) {
+		case 0:
+			ds_test_assert(ds_xorlist_entry_data(void *, pos) == (void *)4);
+			break;
+		case 1:
+			ds_test_assert(ds_xorlist_entry_data(void *, pos) == (void *)2);
+			break;
+		case 2:
+			ds_test_assert(ds_xorlist_entry_data(void *, pos) == (void *)1);
+			break;
+		case 3:
+			ds_test_assert(ds_xorlist_entry_data(void *, pos) == (void *)3);
+			break;
+		case 4:
+			ds_test_assert(ds_xorlist_entry_data(void *, pos) == (void *)5);
+			break;
+		default:
+			ds_test_assert("too many list entries" == NULL);
+			break;
+		}
+	}
+
+	/* remove middle entry off list (note: don't use ds_xorlist_find) */
+	i = 0;
+	ds_xorlist_for_each(prev, pos, &list)
+		if (i++ == 2)
+			break;
+
+	ds_xorlist_delete_entry(&list, pos, prev);
+	ds_test_assert(ds_xorlist_first(&list) != NULL);
+	ds_test_assert(ds_xorlist_last(&list) != NULL);
+	ds_test_assert(ds_xorlist_first(&list) != ds_xorlist_last(&list));
+	ds_test_assert(ds_xorlist_entry_data(void *, ds_xorlist_first(&list)) == (void *)5);
+	ds_test_assert(ds_xorlist_entry_data(void *, ds_xorlist_last(&list)) == (void *)4);
+	ds_test_assert(ds_xorlist_size(&list) == 4);
+
+	/* verify structure of list */
+	i = 0;
+	ds_xorlist_for_each(prev, pos, &list) {
+		switch(i++) {
+		case 0:
+			ds_test_assert(ds_xorlist_entry_data(void *, pos) == (void *)5);
+			break;
+		case 1:
+			ds_test_assert(ds_xorlist_entry_data(void *, pos) == (void *)3);
+			break;
+		case 2:
+			ds_test_assert(ds_xorlist_entry_data(void *, pos) == (void *)2);
+			break;
+		case 3:
+			ds_test_assert(ds_xorlist_entry_data(void *, pos) == (void *)4);
+			break;
+		default:
+			ds_test_assert("too many list entries" == NULL);
+			break;
+		}
+	}
+
+	i = 0;
+	ds_xorlist_for_each_tail(prev, pos, &list) {
+		switch(i++) {
+		case 0:
+			ds_test_assert(ds_xorlist_entry_data(void *, pos) == (void *)4);
+			break;
+		case 1:
+			ds_test_assert(ds_xorlist_entry_data(void *, pos) == (void *)2);
+			break;
+		case 2:
+			ds_test_assert(ds_xorlist_entry_data(void *, pos) == (void *)3);
+			break;
+		case 3:
+			ds_test_assert(ds_xorlist_entry_data(void *, pos) == (void *)5);
+			break;
+		default:
+			ds_test_assert("too many list entries" == NULL);
+			break;
+		}
+	}
+
+	/* remove first and last of list */
+	ds_xorlist_delete_entry(&list, ds_xorlist_first(&list), NULL);
+	ds_xorlist_delete_entry(&list, ds_xorlist_last(&list), NULL);
+	ds_test_assert(ds_xorlist_first(&list) != NULL);
+	ds_test_assert(ds_xorlist_last(&list) != NULL);
+	ds_test_assert(ds_xorlist_first(&list) != ds_xorlist_last(&list));
+	ds_test_assert(ds_xorlist_entry_data(void *, ds_xorlist_first(&list)) == (void *)3);
+	ds_test_assert(ds_xorlist_entry_data(void *, ds_xorlist_last(&list)) == (void *)2);
+	ds_test_assert(ds_xorlist_size(&list) == 2);
+
+	/* free list */
+	ds_xorlist_free(&list);
+	ds_test_assert(ds_xorlist_first(&list) == NULL);
+	ds_test_assert(ds_xorlist_last(&list) == NULL);
+	ds_test_assert(ds_xorlist_empty(&list));
+	ds_test_assert(ds_xorlist_size(&list) == 0);
+
+	/* test ds_xorlist_purge callback */
+	for (i = 1; i <= 1000; i++) {
+		ds_xorlist_append(&list, (void *)i);
+		ds_test_assert(ds_xorlist_size(&list) == i);
+	}
+	ds_linked_list_test_purge_callback_counter = 1;
+	ds_linked_list_test_purge_callback_errors = 0;
+	ds_xorlist_purge(&list, ds_linked_list_test_purge_callback);
+	ds_test_assert(ds_linked_list_test_purge_callback_counter == 1001);
+	ds_test_assert(ds_linked_list_test_purge_callback_errors == 0);
+	ds_test_assert(ds_xorlist_first(&list) == NULL);
+	ds_test_assert(ds_xorlist_last(&list) == NULL);
+	ds_test_assert(ds_xorlist_empty(&list));
+	ds_test_assert(ds_xorlist_size(&list) == 0);
+
+	/* find entry for data pointer from list */
+	for (i = 1; i <= 3; i++)
+		ds_xorlist_append(&list, (void *)i);
+	pos = ds_xorlist_find(&list, (void *)2);
+	ds_test_assert(pos != NULL);
+	ds_test_assert(ds_xorlist_first(&list)->prevnext == (uintptr_t)pos);
+	ds_test_assert(ds_xorlist_last(&list)->prevnext == (uintptr_t)pos);
+	ds_xorlist_delete_entry(&list, pos, ds_xorlist_first(&list));
+	ds_test_assert(ds_xorlist_first(&list)->prevnext == (uintptr_t)ds_xorlist_last(&list));
+	ds_test_assert(ds_xorlist_last(&list)->prevnext == (uintptr_t)ds_xorlist_first(&list));
+
+	/* find returns null when not found */
+	pos = ds_xorlist_find(&list, (void *)2);
+	ds_test_assert(pos == NULL);
+
+	/* free list */
+	ds_xorlist_free(&list);
+	ds_test_assert(ds_xorlist_first(&list) == NULL);
+	ds_test_assert(ds_xorlist_last(&list) == NULL);
+	ds_test_assert(ds_xorlist_empty(&list));
+	ds_test_assert(ds_xorlist_size(&list) == 0);
+
+	/* find returns null when not found */
+	pos = ds_xorlist_find(&list, (void *)1);
+	ds_test_assert(pos == NULL);
+
+	/* test link_remove_entry & link_append_entry & link_prepend_entry */
+	ds_xorlist_prepend(&list, (void*)2);
+	ds_xorlist_prepend(&list, (void*)1);
+	pos = ds_xorlist_last(&list);
+
+	ds_xorlist_remove_entry(&list, pos, NULL);
+	ds_test_assert(ds_xorlist_entry_data(void *, ds_xorlist_first(&list)) == (void*)1);
+	ds_test_assert(ds_xorlist_entry_data(void *, ds_xorlist_last(&list)) == (void*)1);
+	ds_test_assert(!ds_xorlist_empty(&list));
+	ds_test_assert(ds_xorlist_size(&list) == 1);
+	ds_test_assert(ds_xorlist_entry_data(void *, pos) == (void*)2);
+
+	ds_xorlist_append_entry(&list, pos);
+	ds_test_assert(ds_xorlist_entry_data(void *, ds_xorlist_first(&list)) == (void*)1);
+	ds_test_assert(ds_xorlist_entry_data(void *, ds_xorlist_last(&list)) == (void*)2);
+	ds_test_assert(ds_xorlist_last(&list) == pos);
+	ds_test_assert(!ds_xorlist_empty(&list));
+	ds_test_assert(ds_xorlist_size(&list) == 2);
+
+	pos = ds_xorlist_first(&list);
+	ds_xorlist_remove_entry(&list, pos, NULL);
+	ds_test_assert(ds_xorlist_entry_data(void *, ds_xorlist_first(&list)) == (void*)2);
+	ds_test_assert(ds_xorlist_entry_data(void *, ds_xorlist_last(&list)) == (void*)2);
+	ds_test_assert(!ds_xorlist_empty(&list));
+	ds_test_assert(ds_xorlist_size(&list) == 1);
+	ds_test_assert(ds_xorlist_entry_data(void *, pos) == (void*)1);
+
+	ds_xorlist_prepend_entry(&list, pos);
+	ds_test_assert(ds_xorlist_entry_data(void *, ds_xorlist_first(&list)) == (void*)1);
+	ds_test_assert(ds_xorlist_entry_data(void *, ds_xorlist_last(&list)) == (void*)2);
+	ds_test_assert(ds_xorlist_first(&list) == pos);
+	ds_test_assert(!ds_xorlist_empty(&list));
+	ds_test_assert(ds_xorlist_size(&list) == 2);
+
+	/* free list */
+	ds_xorlist_free(&list);
+	ds_test_assert(ds_xorlist_first(&list) == NULL);
+	ds_test_assert(ds_xorlist_last(&list) == NULL);
+	ds_test_assert(ds_xorlist_empty(&list));
+	ds_test_assert(ds_xorlist_size(&list) == 0);
+
+	return 0;
+}
+
 static int ds_queue_test(void)
 {
 	struct ds_list_entry *pos;
@@ -965,6 +1305,7 @@ int main(int argc, char *argv[])
 {
 	run_test("ds_basic", ds_basic_test);
 	run_test("ds_linked_list", ds_linked_list_test);
+	run_test("ds_xor_list", ds_xor_list_test);
 	run_test("ds_append_buffer", ds_append_buffer_test);
 	run_test("ds_queue", ds_queue_test);
 	run_test("ds_async_queue", ds_async_queue_test);

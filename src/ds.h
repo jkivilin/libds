@@ -27,6 +27,7 @@
 #define __LIBDS__DS_H__
 
 #include <stdbool.h>
+#include <stdint.h>
 
 
 /*****************************************************************************
@@ -302,6 +303,260 @@ static inline void ds_list_free(struct ds_linked_list *list)
  */
 #define ds_list_for_each_tail(pos, list) \
 	for ((pos) = (list)->tail; (pos) != NULL; (pos) = (pos)->prev)
+
+
+/*****************************************************************************
+ * XOR linked list
+ *****************************************************************************/
+struct ds_xorlist_entry {
+	uintptr_t prevnext;
+};
+
+struct ds_xor_list {
+	struct ds_xorlist_entry *head, *tail;
+	int count;
+};
+
+/**
+ * __ds_xorlist_entry_data_ptr - helper function to hide strict aliasing warning
+ * @entry: xorlist entry
+ */
+static inline void *__ds_xorlist_entry_data_ptr(void *entry)
+{
+	void *tmp = (char *)entry + sizeof(struct ds_xorlist_entry);
+	return tmp;
+}
+
+/**
+ * ds_xorlist_entry_data_ptr - return xorlist entry data pointer in requested
+ *			       data type
+ * @type: type to cast data pointer to
+ * @entry: xorlist entry
+ */
+#define ds_xorlist_entry_data_ptr(type, entry) \
+	((type*)__ds_xorlist_entry_data_ptr(entry))
+
+/**
+ * ds_xorlist_entry_data - return xorlist entry data in requested data type
+ * @type: data type of xorlist entry buffer
+ * @entry: list entry
+ */
+#define ds_xorlist_entry_data(type, entry) \
+	(*ds_xorlist_entry_data_ptr(type, entry))
+
+/**
+ * sizeof_ds_xorlist_entry - return size of xorlist entry
+ * @type: data type of xorlist entry buffer
+ */
+#define ds_sizeof_xorlist_entry(type) \
+	(sizeof(struct ds_xorlist_entry) + sizeof(type))
+
+/**
+ * ds_set_xorlist_entry_data - set xorlist entry data buffer
+ */
+#define ds_set_xorlist_entry_data(entry, type, data) \
+	(*ds_xorlist_entry_data_ptr(type, entry) = data)
+
+/**
+ * ds_xorlist_entry_alloc - allocate memory area large enough for xorlist_entry
+ *			    and data
+ * @datasize: size of xorlist entry buffer
+ */
+extern struct ds_xorlist_entry *ds_xorlist_entry_alloc(size_t datasize);
+
+/**
+ * ds_new_xorlist_entry - allocate xorlist entry and set xorlist entry data
+ *			  buffer
+ * @entry: xorlist entry variable to store xorlist entry pointer
+ * @type: data type of xorlist entry buffer
+ * @data: data for xorlist entry buffer
+ */
+#define ds_new_xorlist_entry(entry, type, data) do { \
+		entry = ds_xorlist_entry_alloc(sizeof(type)); \
+		if (entry) \
+			ds_set_xorlist_entry_data(entry, type, data); \
+	} while(false)
+
+/**
+ * ds_xorlist_init - initialize given xor linked list structure
+ * @list: xor linked list
+ */
+static inline void ds_xorlist_init(struct ds_xor_list *list)
+{
+	list->head = NULL;
+	list->tail = NULL;
+	list->count = 0;
+}
+
+/**
+ * ds_xorlist_empty - checks if xor linked list is emptry
+ * @list: xor linked list
+ */
+static inline bool ds_xorlist_empty(struct ds_xor_list *list)
+{
+	return (list->count == 0);
+}
+
+/**
+ * ds_xorlist_size - returns number of entry in xor list
+ * @list: xor linked list
+ */
+static inline unsigned int ds_xorlist_size(struct ds_xor_list *list)
+{
+	if (list->count < 0)
+		return 0;
+
+	return list->count;
+}
+
+/**
+ * ds_xorlist_first - returns first entry in xor list
+ * @list: xor linked list
+ */
+static inline struct ds_xorlist_entry *
+ds_xorlist_first(struct ds_xor_list *list)
+{
+	return list->head;
+}
+
+/**
+ * ds_xorlist_last - returns last entry in xor list
+ * @list: xor linked list
+ */
+static inline struct ds_xorlist_entry *ds_xorlist_last(struct ds_xor_list *list)
+{
+	return list->tail;
+}
+
+/**
+ * ds_xorlist_append_entry - add new xorlist entry element at end of xor list
+ * @list: xor linked list
+ * @entry: new xor list entry
+ */
+extern void ds_xorlist_append_entry(struct ds_xor_list *list,
+				    struct ds_xorlist_entry *entry);
+
+/**
+ * ds_xorlist_prepend_entry - add new xorlist entry element at start of xor list
+ * @list: xor linked list
+ * @entry: new xor list entry
+ */
+extern void ds_xorlist_prepend_entry(struct ds_xor_list *list,
+				     struct ds_xorlist_entry *entry);
+
+/**
+ * ds_xorlist_append - add new data element at end of xor list
+ * @list: xor linked list
+ * @data: new data element
+ *
+ * Returns false in case of running out-of-memory.
+ */
+extern bool ds_xorlist_append(struct ds_xor_list *list, void *data);
+
+/**
+ * ds_xorlist_prepend - add new data element at start of xor list
+ * @list: xor linked list
+ * @data: new data element
+ *
+ * Returns false in case of running out-of-memory.
+ */
+extern bool ds_xorlist_prepend(struct ds_xor_list *list, void *data);
+
+/**
+ * ds_xorlist_find - find entry for data-pointer from xor list
+ * @list: xor linked list
+ * @data: data pointer to search list for
+ */
+extern struct ds_xorlist_entry *ds_xorlist_find(struct ds_xor_list *list,
+						const void *data);
+
+/**
+ * ds_xorlist_remove_entry - remove entry from xor list
+ * @list: xor linked list
+ * @entry: entry of xor list to be removed
+ *
+ * Entry element is removed from list but not freed.
+ */
+extern void ds_xorlist_remove_entry(struct ds_xor_list *list,
+				    struct ds_xorlist_entry *entry,
+				    struct ds_xorlist_entry *prev);
+
+/**
+ * ds_list_delete_entry - delete entry from list
+ * @list: linked list
+ * @entry: entry of list to be deleted
+ *
+ * Entry element is also freed.
+ */
+extern void ds_xorlist_delete_entry(struct ds_xor_list *list,
+				    struct ds_xorlist_entry *entry,
+				    struct ds_xorlist_entry *prev);
+
+/**
+ * ds_xorlist_purge - free xor list and all data elements
+ * @list: xor linked list to be freed
+ * @data_free: function callback used to free data elements. If NULL, data
+ *             elements will not be freed.
+ */
+extern void ds_xorlist_purge(struct ds_xor_list *list,
+			     void (*data_free)(void *data));
+
+/**
+ * ds_xorlist_free - free xor list but do not free data elements
+ * @list: xor linked list to be freed
+ */
+static inline void ds_xorlist_free(struct ds_xor_list *list)
+{
+	ds_xorlist_purge(list, NULL);
+}
+
+/**
+ * ds_xorlist_next - get next xor list entry
+ * @prev: previous xor list entry
+ * @pos: current xor list entry
+ */
+#define ds_xorlist_next(prev, pos) \
+	((struct ds_xorlist_entry *)((uintptr_t)(prev) ^ (pos)->prevnext))
+
+/**
+ * ds_xorlist_set_next - set next xor list entry to @pos and @pos to @prev
+ * @prev: previous xor list entry
+ * @pos: current xor list entry
+ */
+static inline void ds_xorlist_set_next(struct ds_xorlist_entry **prev,
+				       struct ds_xorlist_entry **pos)
+{
+	struct ds_xorlist_entry *next;
+
+	next = ds_xorlist_next(*prev, *pos);
+	*prev = *pos;
+	*pos = next;
+}
+
+/**
+ * ds_xorlist_for_each - for statement macro for iterating xor linked list
+ *			 forwards
+ * @prev: xor list previous position entry
+ * @pos: xor list position entry
+ * @list: xor linked list
+ *
+ * NOTE: You may not remove entries from list within this for-loop.
+ */
+#define ds_xorlist_for_each(prev, pos, list) \
+	for ((prev) = NULL, (pos) = (list)->head; (pos) != NULL; \
+		ds_xorlist_set_next(&(prev), &(pos)))
+
+/**
+ * ds_xorlist_for_each - for statement macro for iterating xor linked list
+ *			 backwards
+ * @pos: xor list position entry
+ * @list: xor linked list
+ *
+ * NOTE: You may not remove entries from list within this for-loop.
+ */
+#define ds_xorlist_for_each_tail(prev, pos, list) \
+	for ((prev) = NULL, (pos) = (list)->tail; (pos) != NULL; \
+		ds_xorlist_set_next(&(prev), &(pos)))
 
 
 /*****************************************************************************

@@ -32,6 +32,7 @@ LIBDS_HEADER=$(LIBDS)/ds.h
 
 LIBDS_OBJS=\
 	$(TMPDIR)/ds_linked_list.o \
+	$(TMPDIR)/ds_xor_list.o \
 	$(TMPDIR)/ds_queue.o \
 	$(TMPDIR)/ds_async_queue.o \
 	$(TMPDIR)/ds_append_buffer.o \
