@@ -41,7 +41,7 @@
 
 #define DS_APPEND_BUFFER_PIECE_DATA_LEN (DS_APPEND_BUFFER_PIECE_LEN - \
 					 sizeof(struct ds_xorlist_entry) - \
-					 sizeof(unsigned int))
+					 sizeof(piece_datalen_t))
 
 struct ds_append_buffer_piece {
 	struct ds_xorlist_entry entry;
