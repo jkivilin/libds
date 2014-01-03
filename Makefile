@@ -16,7 +16,7 @@ DEBUG=-DDEBUG
 
 # Source Directories
 
-LIBDS=src
+LIBDS=src/ds
 
 TESTDS=test
 
