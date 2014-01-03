@@ -8,7 +8,7 @@ TMPDIR=tmp
 
 # Compiler Flags
 
-CFLAGS=-Wall -pedantic -g -std=c99 -O2
+CFLAGS=-Wall -pedantic -g -std=c99 -O2 -fstack-protector -D_FORTIFY_SOURCE=2 -D_FILE_OFFSET_BITS=64
 CXXFLAGS=-Wall -pedantic -g
 LDFLAGS=-Llib -lds -lpthread
 INCLUDEFLAGS=-Iinclude
